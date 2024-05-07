@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+</head>
+<body>
+<form action="/upload" method="post" enctype="multipart/form-data">
+           <label for="fname">Nhập Năm:</label><br>
+           <input type="file" name="file">
+            <input type="submit" name="Submit" value="Submit">
+
+    <div id="Done" style="display:{{ DisplayCheck }}">
+<h1>Kết quả, {{ YearFile }}</h1>
+<h1>Là, {{ CheckFile }}</h1>
+</div>
+        <div id="Erorr" style="display:{{ DisplayErrorFile }}">
+<h1>Error</h1>
+</div>
+           </form>
+
+</body>
+</html>
