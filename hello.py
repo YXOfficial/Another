@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, make_response
+from flask import Flask, request, render_template, make_response, send_from_directory
 import requests
 import os
 from werkzeug.utils import secure_filename
@@ -9,61 +9,46 @@ from flask import url_for
 basedir = os.path.abspath(os.path.dirname(__file__))
 UploadPath = os.path.join(basedir, app.config['UPLOAD_FOLDER'])
 
-
-@app.route('/', methods=['POST', 'GET'])
-def year():
-    Year = ''
-    Check = ''
-    DisplayCheck = 'none'
-    DisplayError = 'none'
-    if request.method == 'POST':
-
-        Year = request.form['Year']
-        if Year.isnumeric():
-            Year = int(Year)
-        else:
-            DisplayError = 'block'
-            return render_template('test.html', Year=Year, Check=Check, DisplayCheck=DisplayCheck,
-                               DisplayError=DisplayError)
-
-        if Year % 2 == 0 and Year % 100 != 0:
-            Check = "Nhuận"
-            DisplayCheck = 'block'
-        else:
-            Check = "Thường"
-            DisplayCheck = 'block'
-
-    return render_template('test.html', Year=Year, Check=Check, DisplayCheck=DisplayCheck, DisplayError=DisplayError)
-
-@app.route('/upload', methods=['POST', 'GET'])
-def upload():
-    Year = ''
-    CheckFile = ''
-    DisplayCheck = 'none'
-    DisplayErrorFile = 'none'
-    if request.method == 'POST':
-        f = request.files['file']
-        fa = os.path.join(UploadPath, f.filename)
-        f.save(fa)
-        file_content = open(fa, 'r')
-
-
-        if file_content:
-            Year = file_content.read()
-            data ={"Year": Year}
-            redirect_response = requests.post('http://127.0.0.1:5000/', data=data).text
-            return make_response(redirect_response, 302)
-        else:
-            DisplayErrorFile = 'block'
-            return render_template('upload.html', Year=Year, CheckFile=CheckFile, DisplayCheck=DisplayCheck,
-                                  DisplayErrorFile=DisplayErrorFile)
-
-    return render_template('upload.html', Year=Year, CheckFile=CheckFile, DisplayCheck=DisplayCheck, DisplayErrorFile=DisplayErrorFile)
-
 @app.route('/uploaded_file', methods=['POST', 'GET'])
 def uploaded():
+    if request.method == 'POST':
+        f = request.files['file']
+        filename = f.filename
+        filepath = os.path.join(UploadPath, filename)
+        while os.path.isfile(filepath):
+            print("file is duplicated")
+            temp = filename.split('.')
+            filename = temp[0] + '_copy' + '.' + temp[1]
+            filepath = os.path.join(UploadPath, filename)
+
+
+        # if os.path.isfile(os.path.join(UploadPath, f.filename)):
+        #     print("file is duplicated")
+        #     Split = f.filename.split('.')
+        #     Split[0] = Split[0]+'copy'
+        #     I = Split[0]
+        #     Renamed = '.'.join(Split)
+        #     while os.path.isfile(os.path.join(UploadPath, Renamed)):
+        #         print("duplicated with looping")
+        #         Split = Renamed.split('.')
+        #         Split[0] = Split[0] + 'copy'
+        #         I = Split[0]
+        #         Renamed = '.'.join(Split)
+        #
+        #     fa = os.path.join(UploadPath, Renamed)
+        f.save(filepath)
+
     dir = os.listdir(UploadPath)
+    def gettime(file):
+        filepath = os.path.join(UploadPath, file)
+        return os.path.getctime(filepath)
+
+    dir.sort(key=gettime)
+
     return render_template('Uploaded.html', dir_list=dir)
 
+@app.route('/uploads/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    return send_from_directory(UploadPath, filename, as_attachment=True)
 
 app.run(debug=True)
