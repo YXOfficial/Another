@@ -121,15 +121,18 @@ def Register():
 def PasswordChanger(token, gmail):
     message = ''
     cursor.execute('USE logininfo;')
+    mydb.commit() ## Refresh MySQL
     cursor.execute('SELECT * FROM logininfo WHERE GMAIL = %s AND TOKEN=%s', (gmail, token))
     counter = cursor.fetchone()
     if not counter:
         return render_template('nope.html')
-    if request.method == 'POST' and 'password' in request.form:
-        passchange = request.form['password']
-        cursor.execute('UPDATE logininfo SET PASSWORD= %s WHERE GMAIL=%s', (passchange, gmail))
-        mydb.commit()
-        message = "changed pass"
+    else:
+        if request.method == 'POST' and 'password' in request.form:
+            passchange = request.form['password']
+            cursor.execute('UPDATE logininfo SET PASSWORD= %s WHERE GMAIL=%s', (passchange, gmail))
+            cursor.execute('UPDATE LoginInfo SET Token=null WHERE GMAIL=%s', (gmail, ))
+            mydb.commit()
+            message = "changed pass"
     return render_template('Passwordreset.html', message=message, token=token, gmail=gmail)
 
 @app.route('/Reset', methods=['GET', 'POST'])
@@ -145,7 +148,11 @@ def Reset():
             return render_template('Reset.html', message=message)
         else:
             token = random.randrange(1, 9999)
-            cursor.execute('UPDATE LoginInfo SET Token = %s WHERE GMAIL = %s', (token, gmail))
+            # cursor.execute('CREATE EVENT DeleteToken ON SCHEDULE EVERY 1 second DO UPDATE LoginInfo SET Token=null WHERE EXPIRY_DATE <= NOW();')
+            # Tạo Event Bỏ token khi EXPIRY_DATE nhỏ hơn NOW()
+
+
+            cursor.execute('UPDATE LoginInfo SET Token = %s, EXPIRY_DATE=current_timestamp() + INTERVAL 30 SECOND WHERE GMAIL = %s', (token, gmail)) ## Expired Time
             mydb.commit()
             msg = Message(
                 'Your token, please dont share anyone',
