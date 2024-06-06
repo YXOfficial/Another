@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title></title>
-
-    <form action="/uploaded_file" method="post" enctype="multipart/form-data">
+    <a href="/">Home</a>
+    <form action="/uploaded_file/{{ session['USERNAME'] }}" method="post" enctype="multipart/form-data">
            <label for="fname">Nhập file ở đây:</label><br>
            <input type="file" name="file">
             <input type="submit" name="Submit" value="Submit">

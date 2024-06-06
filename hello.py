@@ -29,25 +29,41 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 
+app.secret_key = '!)@()*)@$*@)@%()%":"::":">">">">">"325faggFF)'
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_TYPE"] = "filesystem"
+
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 from flask import url_for
 basedir = os.path.abspath(os.path.dirname(__file__))
 UploadPath = os.path.join(basedir, app.config['UPLOAD_FOLDER'])
 
+@app.route('/', methods=['POST', 'GET'])
+def home():
+        if session['loggedin'] == None:
+            return redirect('/Login')
+        return render_template('Home.html')
 
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    session['loggedin'] = None
+    session['USERNAME'] = None
+    return redirect('/Login')
 
-@app.route('/uploaded_file', methods=['POST', 'GET'])
-def uploaded():
+@app.route('/uploaded_file/<gmail>', methods=['POST', 'GET'])
+def uploaded(gmail):
+    if not os.path.exists(UploadPath + "/" + gmail):
+        os.makedirs(UploadPath + "/" + gmail)
     if request.method == 'POST':
         f = request.files['file']
         filename = f.filename
-        filepath = os.path.join(UploadPath, filename)
+        filepath = os.path.join(UploadPath + "/" + gmail, filename)
         while os.path.isfile(filepath):
             print("file is duplicated")
             temp = filename.split('.')
             filename = temp[0] + '_copy' + '.' + temp[1]
-            filepath = os.path.join(UploadPath, filename)
+            filepath = os.path.join(UploadPath + '/' + gmail, filename)
 
 
         # if os.path.isfile(os.path.join(UploadPath, f.filename)):
@@ -66,9 +82,9 @@ def uploaded():
         #     fa = os.path.join(UploadPath, Renamed)
         f.save(filepath)
 
-    dir = os.listdir(UploadPath)
+    dir = os.listdir(UploadPath + "/" + gmail)
     def gettime(file):
-        filepath = os.path.join(UploadPath, file)
+        filepath = os.path.join(UploadPath + "/" + gmail, file)
         return os.path.getctime(filepath)
 
     dir.sort(key=gettime)
@@ -77,10 +93,13 @@ def uploaded():
 
 @app.route('/uploads/<path:filename>', methods=['GET', 'POST'])
 def download(filename):
-    return send_from_directory(UploadPath, filename, as_attachment=True)
+    gmail = session['USERNAME']
+    return send_from_directory(UploadPath + '/' + gmail, filename, as_attachment=True)
 
 @app.route('/Login', methods=['GET', 'POST'])
 def login():
+    if session.get('loggedin') == True:
+        return redirect("/")
     message = ''
     if request.method == 'POST' and 'gmail' in request.form and 'password' in request.form:
         gmail = request.form['gmail']
@@ -88,9 +107,8 @@ def login():
         cursor.execute('SELECT * FROM LoginInfo WHERE GMAIL = %s AND PASSWORD = %s', (gmail, password, ))
         account = cursor.fetchone()
         if account:
-            # session['loggedin'] = True
-            # session['id'] = account['id']
-            # session['USERNAME'] = account['USERNAME']
+            session['loggedin'] = True
+            session['USERNAME'] = account[3]
             message = 'Logged in successfully !'
             return render_template('Login.html', message=message)
         else:
